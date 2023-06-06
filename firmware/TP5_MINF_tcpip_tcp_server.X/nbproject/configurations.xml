@@ -21,6 +21,16 @@
         </logicalFolder>
         <itemPath>../src/app.h</itemPath>
         <itemPath>../src/appgen.h</itemPath>
+        <itemPath>../src/Generateur.h</itemPath>
+        <itemPath>../src/GesPec12.h</itemPath>
+        <itemPath>../src/GesS9.h</itemPath>
+        <itemPath>../src/Mc32Debounce.h</itemPath>
+        <itemPath>../src/Mc32NVMUtil.h</itemPath>
+        <itemPath>../src/Mc32SpiUtil.h</itemPath>
+        <itemPath>../src/Mc32_I2cUtilCCS.h</itemPath>
+        <itemPath>../src/Mc32gestI2cSeeprom.h</itemPath>
+        <itemPath>../src/Mc32gestSpiDac.h</itemPath>
+        <itemPath>../src/MenuGen.h</itemPath>
       </logicalFolder>
       <logicalFolder name="f3" displayName="bsp" projectFiles="true">
         <logicalFolder name="f1" displayName="pic32mx_skes" projectFiles="true">
@@ -451,6 +461,16 @@
         <itemPath>../src/app.c</itemPath>
         <itemPath>../src/main.c</itemPath>
         <itemPath>../src/appgen.c</itemPath>
+        <itemPath>../src/Generateur.c</itemPath>
+        <itemPath>../src/GesPec12.c</itemPath>
+        <itemPath>../src/GesS9.c</itemPath>
+        <itemPath>../src/Mc32Debounce.c</itemPath>
+        <itemPath>../src/Mc32NVMUtil.c</itemPath>
+        <itemPath>../src/Mc32SpiUtil.c</itemPath>
+        <itemPath>../src/Mc32_I2cUtilCCS.c</itemPath>
+        <itemPath>../src/Mc32gestI2cSeeprom.c</itemPath>
+        <itemPath>../src/Mc32gestSPiDac.c</itemPath>
+        <itemPath>../src/MenuGen.c</itemPath>
       </logicalFolder>
       <logicalFolder name="f3" displayName="bsp" projectFiles="true">
         <logicalFolder name="f1" displayName="pic32mx_skes" projectFiles="true">
@@ -668,7 +688,7 @@
         <targetDevice>PIC32MX795F512L</targetDevice>
         <targetHeader></targetHeader>
         <targetPluginBoard></targetPluginBoard>
-        <platformTool>noID</platformTool>
+        <platformTool>ICD3PlatformTool</platformTool>
         <languageToolchain>XC32</languageToolchain>
         <languageToolchainVersion>2.50</languageToolchainVersion>
         <platform>3</platform>

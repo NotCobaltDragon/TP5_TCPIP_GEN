@@ -88,6 +88,7 @@ typedef enum
 {
 	/* Application's state machine's initial state. */
 	APPGEN_STATE_INIT=0,
+  APPGEN_STATE_WAIT=1,
 	APPGEN_STATE_SERVICE_TASKS,
 
 	/* TODO: Define states used by the application state machine. */
@@ -197,6 +198,7 @@ void APPGEN_Initialize ( void );
  */
 
 void APPGEN_Tasks( void );
+void APPGEN_UpdateState(APP_GEN_STATES NewState);
 
 
 #endif /* _APPGEN_H */

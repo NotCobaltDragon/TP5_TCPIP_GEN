@@ -54,6 +54,15 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 // *****************************************************************************
 
 #include "appgen.h"
+#include "Mc32DriverLcd.h"
+#include "Mc32gestSpiDac.h"
+#include "Mc32gest_SerComm.h"
+#include "Mc32_I2cUtilCCS.h"
+#include "Mc32gestI2cSeeprom.h"
+#include "MenuGen.h"
+#include "GesPec12.h"
+#include "GesS9.h"
+#include "Generateur.h"
 
 // *****************************************************************************
 // *****************************************************************************
@@ -77,6 +86,9 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 */
 
 APPGEN_DATA appgenData;
+S_ParamGen LocalParamGen;
+S_ParamGen CheckUpdateParamGen;
+extern S_ParamGen RemoteParamGen;
 
 // *****************************************************************************
 // *****************************************************************************
@@ -116,8 +128,8 @@ void APPGEN_Initialize ( void )
 {
     /* Place the App state machine in its initial state. */
     appgenData.state = APPGEN_STATE_INIT;
-
-    
+    DRV_TMR0_Initialize();
+    DRV_TMR1_Initialize();    
     /* TODO: Initialize your application's state machine and other
      * parameters.
      */
@@ -134,42 +146,95 @@ void APPGEN_Initialize ( void )
 
 void APPGEN_Tasks ( void )
 {
-
-    /* Check the application's current state. */
-    switch ( appgenData.state )
+  /* Check the application's current state. */
+  switch ( appgenData.state )
+  {
+    /* Application's initial state. */
+    case APPGEN_STATE_INIT:
     {
-        /* Application's initial state. */
-        case APPGEN_STATE_INIT:
-        {
-            bool appInitialized = true;
-       
+        //LCD init
+        lcd_init();
+        // Init SPI DAC
+        SPI_InitLTC2604();
+        // Initialisation PEC12
+        Pec12Init();
+        // Initialisation S9
+        S9Init();
+        // Initialisation i2c
+        I2C_InitMCP79411();
         
-            if (appInitialized)
-            {
-            
-                appgenData.state = APPGEN_STATE_SERVICE_TASKS;
-            }
-            break;
-        }
-
-        case APPGEN_STATE_SERVICE_TASKS:
-        {
+        // Initialisation du generateur
+        GENSIG_Initialize(&LocalParamGen);
+        // Initialisation du menu
+        MENU_Initialize(&LocalParamGen);
         
-            break;
-        }
-
-        /* TODO: implement your application state machine.*/
+        RemoteParamGen = LocalParamGen;
+        // Active les timers
+        DRV_TMR0_Start();
+        DRV_TMR1_Start();
         
-
-        /* The default state should never be executed. */
-        default:
-        {
-            /* TODO: Handle error in application's state machine. */
-            break;
-        }
+        appgenData.state = APPGEN_STATE_WAIT;
+        break;            
     }
+    case APPGENSTATE_WAIT :
+      // nothing to do
+      break;
+    case APPGEN_STATE_SERVICE_TASKS:
+    {
+      BSP_LEDToggle(BSP_LED_2);
+      
+      // Execution du menu
+      if(LocalParamGen.USB)
+      {
+        CheckUpdateParamGen = RemoteParamGen;
+        GetMessage();
+        MENU_Execute(&RemoteParamGen, true);
+
+        if((CheckUpdateParamGen.Forme!=RemoteParamGen.Forme)||
+         (CheckUpdateParamGen.Amplitude!=RemoteParamGen.Amplitude)||
+         (CheckUpdateParamGen.Offset!=RemoteParamGen.Offset))
+        {
+          GENSIG_UpdateSignal(&RemoteParamGen);
+        }
+        if(CheckUpdateParamGen.Frequence!=RemoteParamGen.Frequence)
+        {
+          GENSIG_UpdatePeriode(&RemoteParamGen);
+        }
+      }
+      else
+      {
+        CheckUpdateParamGen = LocalParamGen;
+        MENU_Execute(&LocalParamGen, false);
+        
+        if((CheckUpdateParamGen.Forme!=LocalParamGen.Forme)||
+         (CheckUpdateParamGen.Amplitude!=LocalParamGen.Amplitude)||
+         (CheckUpdateParamGen.Offset!=LocalParamGen.Offset))
+        {
+          GENSIG_UpdateSignal(&LocalParamGen);
+        }
+        if(CheckUpdateParamGen.Frequence!=LocalParamGen.Frequence)
+        {
+          GENSIG_UpdatePeriode(&LocalParamGen);
+        }
+      }
+      
+      appgenData.state = APPGEN_STATE_WAIT;
+
+      break;
+    }
+    /* The default state should never be executed. */
+    default:
+    {
+        /* TODO: Handle error in application's state machine. */
+        break;
+    }
+  }
 }
 
+void APP_GEN_UpdateState(APP_GEN_STATES NewState)
+{
+    app_genData.state = NewState;
+}
  
 
 /*******************************************************************************
