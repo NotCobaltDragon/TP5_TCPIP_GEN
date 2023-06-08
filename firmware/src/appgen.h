@@ -198,7 +198,7 @@ void APPGEN_Initialize ( void );
  */
 
 void APPGEN_Tasks( void );
-void APPGEN_UpdateState(APP_GEN_STATES NewState);
+void APPGEN_UpdateState(APPGEN_STATES NewState);
 
 
 #endif /* _APPGEN_H */

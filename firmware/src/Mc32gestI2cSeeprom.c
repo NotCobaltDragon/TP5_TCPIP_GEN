@@ -13,7 +13,7 @@
 /*--------------------------------------------------------*/
 
 
-#include "app_gen.h"
+#include "appgen.h"
 #include "app.h"
 #include "Mc32gestI2cSeeprom.h"
 #include "Mc32_I2cUtilCCS.h"

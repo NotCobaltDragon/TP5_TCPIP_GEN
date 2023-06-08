@@ -176,14 +176,22 @@ void APPGEN_Tasks ( void )
         appgenData.state = APPGEN_STATE_WAIT;
         break;            
     }
-    case APPGENSTATE_WAIT :
+    case APPGEN_STATE_WAIT :
       // nothing to do
       break;
     case APPGEN_STATE_SERVICE_TASKS:
     {
       BSP_LEDToggle(BSP_LED_2);
       
-      // Execution du menu
+      if(TCPCon == true)
+      {
+          if(DisplayIPCounter < 500)
+          {
+              DisplayIPCounter++;
+              Menu_Display_IP();
+          }
+      }
+      /*// Execution du menu
       if(LocalParamGen.USB)
       {
         CheckUpdateParamGen = RemoteParamGen;
@@ -216,7 +224,7 @@ void APPGEN_Tasks ( void )
         {
           GENSIG_UpdatePeriode(&LocalParamGen);
         }
-      }
+      }*/
       
       appgenData.state = APPGEN_STATE_WAIT;
 
@@ -231,9 +239,9 @@ void APPGEN_Tasks ( void )
   }
 }
 
-void APP_GEN_UpdateState(APP_GEN_STATES NewState)
+void APP_GEN_UpdateState(APPGEN_STATES NewState)
 {
-    app_genData.state = NewState;
+    appgenData.state = NewState;
 }
  
 
