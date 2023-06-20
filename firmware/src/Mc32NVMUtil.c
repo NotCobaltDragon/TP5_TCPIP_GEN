@@ -18,10 +18,12 @@
 //
 /*--------------------------------------------------------*/
 
+
+
 #include "Mc32NVMUtil.h"
 #include "peripheral\NVM\plib_nvm.h"
 #include <sys/kmem.h>
-
+#include "bsp.h"
 
 // Row dans flash pour data
 const uint32_t  eedata_addr[DEVICE_ROW_SIZE_DIVIDED_BY_4 ] __attribute__((aligned(4096), space(prog)));

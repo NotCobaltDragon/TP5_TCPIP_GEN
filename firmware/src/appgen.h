@@ -5,7 +5,7 @@
     Microchip Technology Inc.
 
   File Name:
-    appgen.h
+    app_gen.h
 
   Summary:
     This header file provides prototypes and definitions for the application.
@@ -58,6 +58,10 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 #include <stdlib.h>
 #include "system_config.h"
 #include "system_definitions.h"
+#include "Mc32Debounce.h"
+#include "Mc32gest_SerComm.h"
+
+#include "DefMenuGen.h"     // paramètres du génerateur
 
 // DOM-IGNORE-BEGIN
 #ifdef __cplusplus  // Provide C++ Compatibility
@@ -88,9 +92,8 @@ typedef enum
 {
 	/* Application's state machine's initial state. */
 	APPGEN_STATE_INIT=0,
-  APPGEN_STATE_WAIT=1,
 	APPGEN_STATE_SERVICE_TASKS,
-
+    APPGEN_STATE_WAIT,
 	/* TODO: Define states used by the application state machine. */
 
 } APPGEN_STATES;
@@ -113,11 +116,24 @@ typedef struct
 {
     /* The application's current state */
     APPGEN_STATES state;
-
+    bool flag_first_task;
+    bool flag_display_menu;
     /* TODO: Define any additional data used by the application. */
+    
 
 } APPGEN_DATA;
 
+//Constante representant les ligne du LCD
+//Pour une question de lisibilitee
+#define LIGNE1_LCD 1
+#define LIGNE2_LCD 2
+#define LIGNE3_LCD 3
+#define LIGNE4_LCD 4
+
+#define MAX_LONGEUR_SEND    32
+
+#define LED_ON 0 //LED actif à 0
+#define LED_OFF 1 //LED inactif à 1
 
 // *****************************************************************************
 // *****************************************************************************
@@ -135,7 +151,7 @@ typedef struct
 
 /*******************************************************************************
   Function:
-    void APPGEN_Initialize ( void )
+    void APP_GEN_Initialize ( void )
 
   Summary:
      MPLAB Harmony application initialization routine.
@@ -157,7 +173,7 @@ typedef struct
 
   Example:
     <code>
-    APPGEN_Initialize();
+    APP_GEN_Initialize();
     </code>
 
   Remarks:
@@ -165,11 +181,19 @@ typedef struct
 */
 
 void APPGEN_Initialize ( void );
+void APPGEN_UpdateState ( APPGEN_STATES NewState );
+//Sers à effacer tout le contenue du LCD
+void ClearAffichage (void);
 
+bool GetSaveTCP (void);
+
+//Variable global du descripteur du bouton s9 (OK)
+//Fais le lien entre system_interrupt.c (lecture) et MenuGen.c (Traitement)
+extern S_SwitchDescriptor DescrOK;
 
 /*******************************************************************************
   Function:
-    void APPGEN_Tasks ( void )
+    void APP_GEN_Tasks ( void )
 
   Summary:
     MPLAB Harmony Demo application tasks function
@@ -190,7 +214,7 @@ void APPGEN_Initialize ( void );
 
   Example:
     <code>
-    APPGEN_Tasks();
+    APP_GEN_Tasks();
     </code>
 
   Remarks:
@@ -198,10 +222,8 @@ void APPGEN_Initialize ( void );
  */
 
 void APPGEN_Tasks( void );
-void APPGEN_UpdateState(APPGEN_STATES NewState);
 
-
-#endif /* _APPGEN_H */
+#endif /* _APP_GEN_H */
 
 //DOM-IGNORE-BEGIN
 #ifdef __cplusplus

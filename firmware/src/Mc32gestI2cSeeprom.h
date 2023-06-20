@@ -11,13 +11,15 @@
 //
 /*--------------------------------------------------------*/
 
+
+
 #include <stdint.h>
 
+#define ADRESSE_STRUCT_EEPROM 0x00
 
 // prototypes des fonctions
 void I2C_InitMCP79411(void);
-void I2C_WriteSEEPROM(S_ParamGen **pParam,uint16_t NbBytes);
-void I2C_ReadSEEPROM(S_ParamGen **pParam,uint16_t NbBytes);
-
+void I2C_ReadSEEPROM(void *DstData, uint32_t EEpromAddr, uint16_t NbBytes);
+void I2C_WriteSEEPROM(void *SrcData, uint32_t EEpromAddr, uint16_t NbBytes);
 
 #endif

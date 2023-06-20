@@ -11,11 +11,11 @@
 #define DEFMENUGEN_H
 
 #include <stdint.h>
-#include "Mc32NVMUtil.h"
 
 #define MAGIC 0x123455AA
 
-typedef enum  {SignalSinus, SignalTriangle, SignalDentDeScie, SignalCarre} E_FormesSignal;
+typedef enum  { SignalSinus, SignalTriangle, SignalDentDeScie, SignalCarre } E_FormesSignal;
+
 
 // Structure des paramètres du générateur
 typedef struct {
@@ -24,7 +24,15 @@ typedef struct {
       int16_t Amplitude;
       int16_t Offset;
       uint32_t Magic;
-      bool USB;
 } S_ParamGen;
+
+// Structure des paramètres du générateur
+typedef struct {
+      int8_t Forme;
+      int8_t Frequence;
+      int8_t Amplitude;
+      int8_t Offset;
+} S_Count;
+
 
 #endif

@@ -1,3 +1,10 @@
+/******************************************************************************/
+// Project		: TP3 Menu Gen
+// Author 		: Ricardo Crespo & Giuseppe Stabile
+// Date 		: 07.02.2022
+// Descrition   : Fichier du header du gestionnaire du Pec12
+/******************************************************************************/
+
 #ifndef GesPEc12_h
 #define GesPEc12_h
 
@@ -32,29 +39,17 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define BL_TIMEOUT 5000  //Time out in [ms] when there's no activity
-#define HOLD_TIME 500  //Hold time when pushbutton is holded down
-#define TRUE 1
-#define FALSE 0
-
 // structure du descripteur du PEC
 // Migration : remplacement bool par champ 1 bit
 typedef struct {
-            uint8_t Inc : 1;             // événement incrément
-            uint8_t Dec : 1;             // événement décrément
-            uint8_t OK  : 1;              // événement action OK
-            uint8_t ESC : 1;             // événement action ESC
-            uint8_t NoActivity : 1;      // Indication de non activité
-            uint16_t PressDuration;     // Pour durée pression du P.B.
-            uint16_t InactivityDuration;   // Pour durée inactivité
+            uint8_t Inc : 1;                // événement incrément
+            uint8_t Dec : 1;                // événement décrément
+            uint8_t OK  : 1;                // événement action OK
+            uint8_t ESC : 1;                // événement action ESC
+            uint8_t NoActivity: 1 ;         // Indication de non activité
+            uint16_t PressDuration;         // Pour durée pression du P.B.
+            uint16_t InactivityDuration;    // Pour durée inactivité
 } S_Pec12_Descriptor;
-
-
-typedef struct {
-
-            uint8_t OK  : 1;              // événement action OK
-
-} S_S9_Descriptor;
 
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // Principe utilisation des fonctions
@@ -88,6 +83,7 @@ typedef struct {
 
 void ScanPec12 (bool ValA, bool ValB, bool ValPB);
 
+// Initialisation du Pec12
 void Pec12Init (void);
 
 //       Pec12IsPlus       true indique un nouveau incrément
@@ -110,7 +106,7 @@ void Pec12ClearMinus   (void);
 void Pec12ClearOK   (void);
 //       Pec12ClearESC     annule indication action ESC
 void Pec12ClearESC   (void);
+// Pour la gestion d'inactivité du backligth du LCD
 void Pec12ClearInactivity   (void);
-
 
 #endif

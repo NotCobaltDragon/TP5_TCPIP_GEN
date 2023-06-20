@@ -3,164 +3,226 @@
 // transmis en USB CDC
 // Canevas TP4 SLO2 2015-2015
 
+
 #include "app.h"
-#include "app_gen.h"
 #include "Mc32gest_SerComm.h"
-#include "Mc32gestI2cSeeprom.h"
 
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 
-APP_DATA appData;
-S_ParamGen RemoteParamGen;
+uint8_t charOfValue[NBR_VALUE] = { 'S', 'F', 'A', 'O', 'W' };
+uint8_t valueOfForme[NBR_FORME_SIGNAL] = {'S', 'T', 'D', 'C'};
+// Fonction de reception  d'un  message
+// Met à jour les paramètres du generateur a partir du message recu
+// Format du message
+//  !S=TF=2000A=10000O=+5000W=0#
+//  !S=PF=2000A=10000O=-5000W=1#
 
-/***********************************************************************
-*                                                                      *
-* Fonction de reception  d'un  message                                 *
-* Met à jour les paramètres du generateur a partir du message recu     *
-* Format du message                                                    *
-*  !S=TF=2000A=10000O=+5000D=100W=0#                                   *
-*  !S=PF=2000A=10000O=-5000D=100W=1#                                   *
-*                                                                      *
-***********************************************************************/
-void GetMessage()
-{
-    static uint8_t etatCar,i;
-    static uint32_t ValRecup,compteur;
-    static bool Signe,NewCharRecived;
-    static char car;
-    car = appData.readBuffer[i];
-    i++;
-    // 33 = !
-    if(car == 33) NewCharRecived = true;
- 
-    if(NewCharRecived == true)
-    {
-        switch (etatCar)
-        {
-            case 0://detection info
-                if(car == 83)etatCar = 1;//83 = S
-            break;
-            case 1://forme signal
-                if(car == 70)// 70 = F
-                {
-                    RemoteParamGen.Forme = ValRecup;
-                    etatCar = 2;
-                }else
-                {
-                    if(car == 84)ValRecup = 1;// 84 = T
-                    if(car == 83)ValRecup = 0;// 83 = S
-                    if(car == 67)ValRecup = 3;// 67 = C
-                    if(car == 68)ValRecup = 2;// 68 = D
-                }
-            break;
-            case 2://Frequence
-                if(car == 61)etatCar = 6;// 61 = '='
-            break;
-            case 3://Amplitude
-                if(car == 61)etatCar = 6;// 61 = '='
-            break;
-            case 4://Offset
-                if(car == 61)etatCar = 6;// 61 = '='
-            break;
-            case 5://sauvgarde              
-                if(car == 49)
-                {//save si un 1 et envoié
-                    RemoteParamGen.Magic = MAGIC;
-                    S_ParamGen* MyRemoteParamGen = &RemoteParamGen ;
-                    I2C_WriteSEEPROM(&MyRemoteParamGen,sizeof(S_ParamGen));
-                }
-                // no save
-                if(car == 48)
-                {
-                
-                }
-                
-                if( car == 35 )
-                {
-                    //finish
-                    etatCar = 0;
-                    //i=0;
-                    NewCharRecived = false;
-                }
-            break;
-            case 6://si c'est un chifrre en met la valeur dans ValRecup
-                if(car >= 48 && car <= 57 )
-                {
-                    compteur++;
-                    if(compteur == 1)ValRecup = car-48;
-                    if(compteur >= 2)ValRecup = ((ValRecup*10) + car)-48;
-                }
-                else
-                {   //detection du signe
-                    if(car==43)Signe = true;//+
-                    if(car==45)Signe = false;//-
-                    compteur = 0;
-                    if(car == 65)// 65 = A
-                    {
-                        RemoteParamGen.Frequence = ValRecup;
-                        etatCar = 3;
-                    }
-                    if(car == 79)// 79 = O
-                    {
-                        RemoteParamGen.Amplitude = ValRecup;
-                        etatCar = 4;
-                    }
-                    if(car == 87 && Signe == true)// 87 = W
-                    {
-                        RemoteParamGen.Offset = ValRecup;
-                        etatCar = 5;
-                    }
-                    if(car == 87 && Signe == false)// 87 = W
-                    {
-                        RemoteParamGen.Offset = -ValRecup;
-                        etatCar = 5;
-                    }    
-                }
-                break;
-            default:
-            break;
+bool GetDataIsOK(int8_t* chaine) {
+	int i;
+    bool start = false;
+    bool end = false;
+    
+	for (i = 0; i < SIZE_MAX_OF_DATA; i++) {
+		if (*chaine == (int8_t)END_DATA) {
+			end = true;
+		}
+        if (*chaine == (int8_t)START_DATA){
+            start = true;
         }
+		chaine++;
+	}
+    
+    if((start==true) && (end==true)){
+        return true;
     }
-}
-/*********************************************************************************
-*                                                                                *
-*  Fonction d'envoi d'un  message                                                *
-*  Rempli le tampon d'émission pour USB en fonction des paramètres du générateur *
-*  Format du message                                                             *
-*  !S=TF=2000A=10000O=+5000D=25WP=0#                                             *
-*  !S=TF=2000A=10000O=+5000D=25WP=1#    // ack sauvegarde                        *
-*                                                                                *
-*********************************************************************************/
-void SendMessage()
-{
-    static char Envoie;
-    static uint8_t i= 0;
-    uint8_t Control = 0;
-    if(appData.readBuffer[0] == 33 )//recherche "!"
-    {
-        Envoie = appData.readBuffer[i];
-        i++;
-        if(Envoie == 87)//recherche le W
-        {
-            Envoie = appData.readBuffer[i+1];//recup 0/1
-            //control quand a recup la valeur save
-            if(Envoie != 48)Control++;
-            if(Envoie != 49)Control++;
-            //Si en trouve pas un 1 ou un 0 en cherche a nouveaux
-            if(Control != 1)Envoie = appData.readBuffer[i+2];
-            appData.readBuffer[i] = 80;// P
-            appData.readBuffer[i+1] = 61;// =
-            appData.readBuffer[i+2] = Envoie;// 0/1
-            appData.readBuffer[i+3] = 35;//#
-            i=0;
-        }
-        
-    }else
-    {
-        appData.readBuffer[i]=63;//si faux envoi "?"
+    else{
+       return false; 
     }
 }
 
+
+E_FormesSignal getValueForme(uint8_t charactere){
+	int i;
+	for (i = 0; i < NBR_FORME_SIGNAL; i++) {
+		if (charactere == valueOfForme[i]) {
+			return i;
+		}
+	}
+	return 0;
+}
+
+
+int16_t testValue(int16_t value, char parameterToTest) {
+	switch (parameterToTest)
+	{
+	case SIGNAL_VALUE:
+		if (value > MAXVALEUR_FORME)
+			value = MAXVALEUR_FORME;
+		else if (value < MINVALEUR_FORME)
+			value = MINVALEUR_FORME;
+		break;
+
+	case FREQ_VALUE:
+		if (value > MAXVALEUR_FREQUENCE_HZ)
+			value = MAXVALEUR_FREQUENCE_HZ;
+		else if (value < MINVALEUR_FREQUENCE_HZ)
+			value = MINVALEUR_FREQUENCE_HZ;
+		break;
+	case AMPL_VALUE:
+		if (value > MAXVALEUR_AMPLITUDE_mV)
+			value = MAXVALEUR_AMPLITUDE_mV;
+		else if (value < MINVALEUR_AMPLITUDE_mV)
+			value = MINVALEUR_AMPLITUDE_mV;
+		break;
+	case OFFS_VALUE:
+		if (value > MAXVALEUR_OFFSET_mV)
+			value = MAXVALEUR_OFFSET_mV;
+		else if (value < MINVALEUR_OFFSET_mV)
+			value = MINVALEUR_OFFSET_mV;
+		break;
+	case W_VALUE:
+		if (value > MAXVALEUR_W)
+			value = MAXVALEUR_W;
+		else if (value < MINVALEUR_W)
+			value = MINVALEUR_W;
+		break;
+	}
+	return value;
+}
+
+
+int16_t getValueFreqAmplOffsW(char* chaine, char valueParameter) {
+	int i;
+	char value[SIZE_MAX_VALUE] = {0, 0, 0, 0, 0, 0};
+
+	for (i = 0; i < SIZE_MAX_VALUE; i++) {
+		if (((*chaine >= START_LETTRE_MAJ_ASCII) && (*chaine <= END_LETTRE_MAJ_ASCII)) || (*chaine == END_DATA)) {
+			break;
+		}
+		else {
+			value[i] = *chaine;
+		}
+		chaine++;
+	}
+	return testValue(atoi(value), valueParameter);
+}
+
+bool GetMessage(int8_t *TCPReadBuffer, S_ParamGen *pParam, bool *SaveTodo)
+{
+	uint8_t *positionOfStartValue = 0;
+	uint8_t i, j;
+	uint8_t idxValue;
+	bool dataIsOk = false;
+
+	if (GetDataIsOK(TCPReadBuffer)) {
+		dataIsOk = true;
+		//Faire autant de fois qu'il y a de valeur à recup (NBR_VALUE)
+		for (i = 0; i < NBR_VALUE; i++) {
+			//Recup la position du caractère selectionner sur charOfValue
+			positionOfStartValue = (uint8_t*)strchr((char*)TCPReadBuffer, charOfValue[i]);
+			//Recuperer le caractère lié à la position recup (positionOfStartValue)
+			idxValue = charOfValue[i];
+
+			//Si un caractère à été liée é la position
+			if (positionOfStartValue != 0) {
+				//Décale la position (éviter le "X=") afin de traiter la valeur souhaitée
+				positionOfStartValue += (sizeof(CHAR_AFTER_VALUE) - 1); //-1 pour enlever "\0"
+				switch (idxValue)
+				{
+				case SIGNAL_VALUE:
+					pParam->Forme = getValueForme((uint8_t)*(positionOfStartValue));
+					break;
+
+				case FREQ_VALUE:
+				
+					pParam->Frequence = getValueFreqAmplOffsW((char*)positionOfStartValue, (char)idxValue);
+					break;
+
+				case AMPL_VALUE:
+					pParam->Amplitude = getValueFreqAmplOffsW((char*)positionOfStartValue, (char)idxValue);
+					break;
+
+				case OFFS_VALUE:
+					pParam->Offset = getValueFreqAmplOffsW((char*)positionOfStartValue, (char)idxValue);
+					break;
+				case W_VALUE:
+					if (getValueFreqAmplOffsW((char*)positionOfStartValue, (char)idxValue))
+						*SaveTodo = true;
+					else
+						*SaveTodo = false;
+					break;
+				}
+			}
+		}        
+        //vide le buffer
+        for(j = 0; j < MAX_LONGEUR_SEND; j++)
+        {
+            TCPReadBuffer[j] = 0;
+        }
+	}
+	return dataIsOk;
+} // GetMessage
+
+
+// Fonction d'envoi d'un  message
+// Rempli le tampon d'émission pour USB en fonction des paramètres du générateur
+// Format du message
+// !S=TF=2000A=10000O=+5000D=25WP=0#
+// !S=TF=2000A=10000O=+5000W=1#    // ack sauvegarde
+
+void SendMessage(S_ParamGen *pParam, bool Saved)
+{
+    int8_t endString = 0;
+    int8_t TCPSendBuffer[32];
+    char Forme = 'E';
+    
+    switch (pParam->Forme)
+    {
+        //Cas triangle
+        case SignalTriangle:
+        {
+            //Assignation de "Triangle" au champs forme de la structure
+            Forme = 'T';
+            break;
+        }
+        case SignalSinus:
+        {
+            //Assignation de "Sinus" au champs forme de la structure
+            Forme = 'S';
+            break;
+        }
+        case SignalCarre:
+        {
+            //Assignation de "Carre" au champs forme de la structure
+            Forme = 'C';
+            break;
+        }
+        case SignalDentDeScie:
+        {
+           //Assignation de "DentDeScie" au champs forme de la structure
+            Forme = 'D';
+            break; 
+        }
+        default : 
+            break;
+    }
+    if (Saved) 
+    {
+        endString = 1;
+    }
+    else
+    {
+        endString = 0;
+    }
+    //mise en forme du message à envoyer
+    if(pParam->Offset>=0)
+    	sprintf((char*)TCPSendBuffer, "!S=%cF=%dA=%dO=+%dWP=%d#", Forme, pParam->Frequence, pParam->Amplitude, pParam->Offset,endString);
+    else
+    sprintf((char*)TCPSendBuffer, "!S=%cF=%dA=%dO=%dWP=%d#", Forme, pParam->Frequence, pParam->Amplitude, pParam->Offset,endString);
+    //envoyer la réponse via TCP-IP
+    TCPIP_TCP_ArrayPut(appData.socket, (uint8_t*)TCPSendBuffer, 28);
+    //TCPIP_TCP_ArrayPut(appData.socket, (uint8_t*)TCPSendBuffer, (sizeof(TCPSendBuffer)-3)); //tentative enlever NULL -> pas ok
+} // SendMessage

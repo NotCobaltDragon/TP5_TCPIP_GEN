@@ -13,12 +13,11 @@
 /*--------------------------------------------------------*/
 
 
-#include "appgen.h"
-#include "app.h"
+
 #include "Mc32gestI2cSeeprom.h"
 #include "Mc32_I2cUtilCCS.h"
-#include "DefMenuGen.h"
-#include "Mc32Delays.h"
+#include "app.h"
+
 
 // Définition pour MCP79411
 #define MCP79411_EEPROM_R    0xAF         // MCP79411 address for read
@@ -32,6 +31,8 @@
 // #define I2C-SDA  SDa2/RA3      PORTAbits.RA3   pin 59
 
 
+
+
 // Initialisation de la communication I2C et du MCP79411
 // ------------------------------------------------
 
@@ -41,74 +42,79 @@ void I2C_InitMCP79411(void)
    i2c_init( Fast );
 } //end I2C_InitMCP79411
 
-// Ecriture d'un bloc dans l'EEPROM du MCP79411
-
-void I2C_WriteSEEPROM(S_ParamGen **pParam, uint16_t NbBytes)
+// Ecriture d'un bloc dans l'EEPROM du MCP79411 
+void I2C_WriteSEEPROM(void *SrcData, uint32_t EEpromAddr, uint16_t NbBytes)
 {
-//      //si probleme bloquage avec l'eeprom
-//    i2c_start();
-//    i2c_write(MCP79411_EEPROM_W);
-//    i2c_write(0xff);
-//    i2c_write(0x00);
-//    i2c_stop();
+    uint8_t i, j;
+    uint8_t* scrByteData = SrcData; //Evite de caster *SrcData
+    bool ack;
+    uint16_t saveNbBytes;// = NbBytes; //Save de NbBytes pour manipulations
+     
+    uint8_t pageStart, pageEnd, nbPages;
+    //_____Determine le nombre de page à écrire_____
+    pageStart = EEpromAddr / 8;
+    pageEnd = (EEpromAddr + NbBytes) / 8;
+    nbPages = pageEnd - pageStart;
+    //_______________________________________________
     
-    uint8_t i=0;
-    uint8_t i2=0;
-    uint8_t *Ptr = (uint8_t*)*pParam;//ptr pointe sur l'adresse de la struct
-    for(i2=0;i2<2;i2++)
+    for (j= 0 ; j < nbPages ; j++)
     {
-        if(i2==0)//ecriture sur une deuxieme page
-        {
+        if ( NbBytes > 8)
+            saveNbBytes = 8;
+        else
+            saveNbBytes = NbBytes;    
+        
+        do{
             i2c_start();
-            i2c_write(MCP79411_EEPROM_W);//adresse d'ecriture
-            i2c_write(MCP79411_EEPROM_BEG);//a quel adresse en commence
-            for(i=0;i<8;i++)
-            {
-                i2c_write(Ptr[i]);//ecriture de la valeur de la stuct ,i pointe par pas de 8bit
-            }
-            i2c_stop();
+            ack = i2c_write(MCP79411_EEPROM_W);        
+        }while(!ack);
+
+        i2c_write(EEpromAddr);
+        
+        for ( i = 0 ; i < saveNbBytes; i++ ) {
+            i2c_write(*scrByteData);
+            scrByteData++;      
         }
-        delay_ms(5);//une page remplie donc attente pour pouvoir ecrire une nouvel
-        if(i2==1)//ecriture sur une deuxieme page
-        {
-            i2c_start();
-            i2c_write(MCP79411_EEPROM_W);//adresse d'ecriture
-            i2c_write(MCP79411_EEPROM_BEG+8);//a quel adresse en recommence
-            for(i=8;i<16;i++)
-            {
-                i2c_write(Ptr[i]);//ecriture de la valeur de la stuct ,[i] corespond ">>8"
-            }
-            i2c_stop();
-        }
+        i2c_stop();
+        
+        EEpromAddr += saveNbBytes;
+        NbBytes -= saveNbBytes;
     }
 } // end I2C_WriteSEEPROM
 
 // Lecture d'un bloc dans l'EEPROM du MCP79411
-void I2C_ReadSEEPROM(S_ParamGen **pParam,uint16_t NbBytes)
+void I2C_ReadSEEPROM(void *DstData, uint32_t EEpromAddr, uint16_t NbBytes)
 {
-        //  si probleme bloquage avec l'eeprom
-//    i2c_start();
-//    i2c_write( MCP79411_EEPROM_W );
-//    i2c_write(0xff);
-//    i2c_reStart();
-//    i2c_write( MCP79411_EEPROM_R );
-//    i2c_read(false);
-    
-    uint8_t i2=0;
-    uint8_t *ptr = (uint8_t*)*pParam;//ptr pointe sur l'adresse de la struct
-    
-    i2c_start();
-    i2c_write( MCP79411_EEPROM_W );//adresse d'ecriture
-    i2c_write(MCP79411_EEPROM_BEG);//adresse pointé
-    i2c_reStart();
-    i2c_write( MCP79411_EEPROM_R );//adresse de lecture
-    
-    for(i2=0;i2<NbBytes;i2++)
-    {
-        ptr[i2]=i2c_read(true);//LEcture et en met la valeur dans la struct a travers le ptr
+    int i;
+    bool ack;
+    //Realisation du start
+    do{
+        i2c_start();
+        ack = i2c_write(MCP79411_EEPROM_W);        
+    }while(!ack);
+    //Fin du start
+    i2c_write(EEpromAddr); //Adress
+    i2c_reStart(); //Restart
+    i2c_write(MCP79411_EEPROM_R);
+     for ( i = 0 ; i < NbBytes; i++ ) {
+        if (i == (NbBytes - 1)){
+           *((uint8_t*)DstData) = i2c_read(0); ///NO ACK  
+        }
+        else{
+            *((uint8_t*)DstData)  = i2c_read(1); // ACK
+        }
+        //((uint8_t*)DstData) ++;
+        DstData = ((uint8_t*)DstData) + 1;
     }
-    ptr[i2]=i2c_read(false);//derniere lecture donc ACK a 0
     i2c_stop();
-
 } // end I2C_ReadSEEPROM
    
+
+
+
+
+
+ 
+
+
+

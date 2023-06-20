@@ -52,8 +52,12 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 // Section: Included Files 
 // *****************************************************************************
 // *****************************************************************************
-
+#include <string.h>
 #include "app.h"
+#include "appgen.h"
+#include "Mc32DriverLcd.h"
+#include "MenuGen.h"
+#include "Mc32gest_SerComm.h"
 #define SERVER_PORT 9760
 
 // *****************************************************************************
@@ -78,6 +82,9 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 */
 
 APP_DATA appData;
+extern APPGEN_DATA appgenData;
+uint8_t tbIP[4];
+uint16_t CompteurAffIP;
 
 
 // *****************************************************************************
@@ -139,7 +146,7 @@ void APP_Tasks ( void )
     const char          *netName, *netBiosName;
     static IPV4_ADDR    dwLastIP[2] = { {-1}, {-1} };
     IPV4_ADDR           ipAddr;
-    int                 i, nNets;
+    int                 i, nNets, j;
     TCPIP_NET_HANDLE    netH;
 
     SYS_CMD_READY_TO_READ();
@@ -164,11 +171,11 @@ void APP_Tasks ( void )
                     netName = TCPIP_STACK_NetNameGet(netH);
                     netBiosName = TCPIP_STACK_NetBIOSName(netH);
 
-#if defined(TCPIP_STACK_USE_NBNS)
-                    SYS_CONSOLE_PRINT("    Interface %s on host %s - NBNS enabled\r\n", netName, netBiosName);
-#else
+                    #if defined(TCPIP_STACK_USE_NBNS)
+                        SYS_CONSOLE_PRINT("    Interface %s on host %s - NBNS enabled\r\n", netName, netBiosName);
+                    #else
                     SYS_CONSOLE_PRINT("    Interface %s on host %s - NBNS disabled\r\n", netName, netBiosName);
-#endif  // defined(TCPIP_STACK_USE_NBNS)
+                    #endif  // defined(TCPIP_STACK_USE_NBNS)
 
                 }
                 appData.state = APP_TCPIP_WAIT_FOR_IP;
@@ -181,7 +188,6 @@ void APP_Tasks ( void )
             // if the IP address of an interface has changed
             // display the new value on the system console
             nNets = TCPIP_STACK_NumberOfNetworksGet();
-
             for (i = 0; i < nNets; i++)
             {
                 netH = TCPIP_STACK_IndexToNet(i);
@@ -198,6 +204,13 @@ void APP_Tasks ( void )
                     SYS_CONSOLE_MESSAGE(" IP Address: ");
                     SYS_CONSOLE_PRINT("%d.%d.%d.%d \r\n", ipAddr.v[0], ipAddr.v[1], ipAddr.v[2], ipAddr.v[3]);
                 }
+                
+                //recuperation de l'adresse IP sur un tableau utilisé dans un autre fichier
+                for(j = 0; j < 4; j++)
+                {
+                    tbIP[j] = ipAddr.v[j];
+                }
+                
                 appData.state = APP_TCPIP_OPENING_SERVER;
             }
             break;
@@ -210,18 +223,43 @@ void APP_Tasks ( void )
                 SYS_CONSOLE_MESSAGE("Couldn't open server socket\r\n");
                 break;
             }
+            
+            appData.keepAlive.keepAliveEnable = true;
+            appData.keepAlive.keepAliveTmo = 1000;
+            appData.keepAlive.keepAliveUnackLim = 2;
+            TCPIP_TCP_OptionsSet(appData.socket, TCP_OPTION_KEEP_ALIVE, &(appData.keepAlive));
+            
             appData.state = APP_TCPIP_WAIT_FOR_CONNECTION;
         }
         break;
 
         case APP_TCPIP_WAIT_FOR_CONNECTION:
         {
-            if (!TCPIP_TCP_IsConnected(appData.socket))
+            if(CompteurAffIP == 0)
             {
+                ClearAffichage();
+            }
+            if(CompteurAffIP < 2500)
+            {
+                Pec12ClearInactivity();
+                appgenData.flag_first_task = true;
+                appgenData.flag_display_menu = false;
+                MENU_AffichageIP();
+                CompteurAffIP++;
+            }
+            else
+            {
+                appgenData.flag_display_menu = true;
+            }
+
+            if (!TCPIP_TCP_IsConnected(appData.socket))
+            {                
                 return;
             }
             else
             {
+                CompteurAffIP = 0;
+                TCPCon = true;
                 // We got a connection
                 appData.state = APP_TCPIP_SERVING_CONNECTION;
                 SYS_CONSOLE_MESSAGE("Received a connection\r\n");
@@ -237,57 +275,70 @@ void APP_Tasks ( void )
                 SYS_CONSOLE_MESSAGE("Connection was closed\r\n");
                 break;
             }
-            int16_t wMaxGet, wMaxPut, wCurrentChunk;
-            uint16_t w, w2;
+            int16_t wMaxGet;/*, wMaxPut, wCurrentChunk;*/
+//            uint16_t w, w2;
             uint8_t AppBuffer[32];
+            
             // Figure out how many bytes have been received and how many we can transmit.
+
             wMaxGet = TCPIP_TCP_GetIsReady(appData.socket);	// Get TCP RX FIFO byte count
-            wMaxPut = TCPIP_TCP_PutIsReady(appData.socket);	// Get TCP TX FIFO free space
+            
+            // Transfer the data out of the TCP RX FIFO and into our local processing buffer.
+            TCPIP_TCP_ArrayGet(appData.socket, AppBuffer, wMaxGet);
+            //copie le buffer avec une taille donnée
+            memcpy(BufferTCPIP,AppBuffer,wMaxGet);
+            
+            
+            //mise en commentaire de la partie généré automatiquement
+//            wMaxPut = TCPIP_TCP_PutIsReady(appData.socket);	// Get TCP TX FIFO free space
+            
 
-            // Make sure we don't take more bytes out of the RX FIFO than we can put into the TX FIFO
-            if(wMaxPut < wMaxGet)
-                    wMaxGet = wMaxPut;
-
-            // Process all bytes that we can
-            // This is implemented as a loop, processing up to sizeof(AppBuffer) bytes at a time.
-            // This limits memory usage while maximizing performance.  Single byte Gets and Puts are a lot slower than multibyte GetArrays and PutArrays.
-            wCurrentChunk = sizeof(AppBuffer);
-            for(w = 0; w < wMaxGet; w += sizeof(AppBuffer))
-            {
-                // Make sure the last chunk, which will likely be smaller than sizeof(AppBuffer), is treated correctly.
-                if(w + sizeof(AppBuffer) > wMaxGet)
-                    wCurrentChunk = wMaxGet - w;
-
-                // Transfer the data out of the TCP RX FIFO and into our local processing buffer.
-                TCPIP_TCP_ArrayGet(appData.socket, AppBuffer, wCurrentChunk);
-
-                // Perform the "ToUpper" operation on each data byte
-                for(w2 = 0; w2 < wCurrentChunk; w2++)
-                {
-                    i = AppBuffer[w2];
-                    if(i >= 'a' && i <= 'z')
-                    {
-                            i -= ('a' - 'A');
-                            AppBuffer[w2] = i;
-                    }
-                    else if(i == '\e')   //escape
-                    {
-                        appData.state = APP_TCPIP_CLOSING_CONNECTION;
-                        SYS_CONSOLE_MESSAGE("Connection was closed\r\n");
-                    }
-                }
-
-                // Transfer the data out of our local processing buffer and into the TCP TX FIFO.
-                SYS_CONSOLE_PRINT("Server Sending %s\r\n", AppBuffer);
-                TCPIP_TCP_ArrayPut(appData.socket, AppBuffer, wCurrentChunk);
-
-                // No need to perform any flush.  TCP data in TX FIFO will automatically transmit itself after it accumulates for a while.  If you want to decrease latency (at the expense of wasting network bandwidth on TCP overhead), perform and explicit flush via the TCPFlush() API.
-            }
+//            //Make sure we don't take more bytes out of the RX FIFO than we can put into the TX FIFO
+//            if(wMaxPut < wMaxGet)
+//                    wMaxGet = wMaxPut;
+//
+//            //Process all bytes that we can
+//            //This is implemented as a loop, processing up to sizeof(AppBuffer) bytes at a time.
+//            //This limits memory usage while maximizing performance.  Single byte Gets and Puts are a lot slower than multibyte GetArrays and PutArrays.
+//            wCurrentChunk = sizeof(AppBuffer);
+//            for(w = 0; w < wMaxGet; w += sizeof(AppBuffer))
+//            {
+//                // Make sure the last chunk, which will likely be smaller than sizeof(AppBuffer), is treated correctly.
+//                if(w + sizeof(AppBuffer) > wMaxGet)
+//                    wCurrentChunk = wMaxGet - w;
+//
+//                
+//                
+//                
+//                // Perform the "ToUpper" operation on each data byte
+//                for(w2 = 0; w2 < wCurrentChunk; w2++)
+//                {
+//                    i = AppBuffer[w2];
+//                    if(i >= 'a' && i <= 'z')
+//                    {
+//                            i -= ('a' - 'A');
+//                            AppBuffer[w2] = i;
+//                    }
+//                    else if(i == '\e')   //escape
+//                    {
+//                        appData.state = APP_TCPIP_CLOSING_CONNECTION;
+//                        SYS_CONSOLE_MESSAGE("Connection was closed\r\n");
+//                    }
+//                }
+//                
+//                // Transfer the data out of our local processing buffer and into the TCP TX FIFO.
+//                SYS_CONSOLE_PRINT("Server Sending %s\r\n", AppBuffer);
+//                
+//              
+//                // No need to perform any flush.  TCP data in TX FIFO will automatically transmit itself after it accumulates for a while.  If you want to decrease latency (at the expense of wasting network bandwidth on TCP overhead), perform and explicit flush via the TCPFlush() API.
+//            }
         }
         break;
         case APP_TCPIP_CLOSING_CONNECTION:
         {
             // Close the socket connection.
+            TCPCon = false;
+            CompteurAffIP = 0;
             TCPIP_TCP_Close(appData.socket);
             appData.socket = INVALID_SOCKET;
             appData.state = APP_TCPIP_WAIT_FOR_IP;

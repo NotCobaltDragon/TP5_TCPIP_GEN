@@ -63,6 +63,9 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 #include "app.h"
 #include "appgen.h"
 #include "system_definitions.h"
+#include "GesPec12.h"
+#include "Generateur.h"
+#include "MenuGen.h"
 
 // *****************************************************************************
 // *****************************************************************************
@@ -76,9 +79,46 @@ void __ISR(_TIMER_2_VECTOR, ipl1AUTO) IntHandlerDrvTmrInstance0(void)
 {
     DRV_TMR_Tasks(sysObj.drvTmr0);
 }
- void __ISR(_USB_1_VECTOR, ipl1AUTO) _IntHandlerUSBInstance0(void)
+void __ISR(_USB_1_VECTOR, ipl1AUTO) _IntHandlerUSBInstance0(void)
 {
     DRV_USBFS_Tasks_ISR(sysObj.drvUSBObject);
+}
+
+S_SwitchDescriptor DescrOK;
+ 
+
+void __ISR(_TIMER_1_VECTOR, ipl3AUTO) _IntHandlerDrvTmrInstance0(void)
+{
+    static uint16_t counter = 0;
+    static uint16_t consigneConteur = 3000; // 3000ms/1ms = 3000
+    PLIB_INT_SourceFlagClear(INT_ID_0,INT_SOURCE_TIMER_1);
+    
+    LED1_W = !LED1_R; //Fréquence Timer1
+    
+    if(!TCPCon){
+    ScanPec12(PEC12_A, PEC12_B, PEC12_PB); 
+    DoDebounce(&DescrOK, S_OK);
+    }
+    
+      
+    if (counter < (consigneConteur - 1)){
+        counter ++;
+    }
+    else{
+        APPGEN_UpdateState(APPGEN_STATE_SERVICE_TASKS);
+        consigneConteur = 10; //10ms/1ms = 10
+        counter = 0;
+        //LED6_W = LED_OFF;  //Temps_Init (3 secondes) Allumage app.c
+    }
+}
+
+void __ISR(_TIMER_3_VECTOR, ipl7AUTO) _IntHandlerDrvTmrInstance1(void)
+{
+    //LED7_W = LED_ON; //Test durre traitement (Marque debut --> Led ON)
+    LED0_W = !LED0_R;
+    PLIB_INT_SourceFlagClear(INT_ID_0,INT_SOURCE_TIMER_3);
+    GENSIG_Execute();
+    //LED7_W = LED_OFF; //Test durre traitement (Marque debut led --> OFF)
 }
 
 void __ISR(_ETH_VECTOR, ipl5AUTO) _IntHandler_ETHMAC(void)

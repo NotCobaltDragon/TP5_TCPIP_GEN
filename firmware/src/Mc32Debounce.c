@@ -113,7 +113,7 @@ void DebounceInit (S_SwitchDescriptor *pDescriptor) {
    pDescriptor->bits.KeyValue          = 1;
 }
 
-//  DebounceGetInput  fourni l'état du switch après anti-rebond
+//  DebounceGetInput  fourni l'état du switch aprés anti-rebond
 bool DebounceGetInput (S_SwitchDescriptor *pDescriptor) {
    return (pDescriptor->bits.KeyValue);
 }

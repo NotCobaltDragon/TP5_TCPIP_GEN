@@ -21,18 +21,18 @@
         </logicalFolder>
         <itemPath>../src/app.h</itemPath>
         <itemPath>../src/appgen.h</itemPath>
+        <itemPath>../src/DefMenuGen.h</itemPath>
         <itemPath>../src/Generateur.h</itemPath>
         <itemPath>../src/GesPec12.h</itemPath>
-        <itemPath>../src/GesS9.h</itemPath>
         <itemPath>../src/Mc32Debounce.h</itemPath>
-        <itemPath>../src/Mc32NVMUtil.h</itemPath>
         <itemPath>../src/Mc32SpiUtil.h</itemPath>
         <itemPath>../src/Mc32_I2cUtilCCS.h</itemPath>
         <itemPath>../src/Mc32gestI2cSeeprom.h</itemPath>
         <itemPath>../src/Mc32gestSpiDac.h</itemPath>
-        <itemPath>../src/MenuGen.h</itemPath>
-        <itemPath>../src/DefMenuGen.h</itemPath>
         <itemPath>../src/Mc32gest_SerComm.h</itemPath>
+        <itemPath>../src/MenuGen.h</itemPath>
+        <itemPath>../src/Mc32NVMUtil.h</itemPath>
+        <itemPath>../src/system_config/pic32mx_eth_sk2/framework/driver/tmr/drv_tmr_static.h</itemPath>
       </logicalFolder>
       <logicalFolder name="f3" displayName="bsp" projectFiles="true">
         <logicalFolder name="f1" displayName="pic32mx_skes" projectFiles="true">
@@ -465,15 +465,15 @@
         <itemPath>../src/appgen.c</itemPath>
         <itemPath>../src/Generateur.c</itemPath>
         <itemPath>../src/GesPec12.c</itemPath>
-        <itemPath>../src/GesS9.c</itemPath>
         <itemPath>../src/Mc32Debounce.c</itemPath>
-        <itemPath>../src/Mc32NVMUtil.c</itemPath>
         <itemPath>../src/Mc32SpiUtil.c</itemPath>
         <itemPath>../src/Mc32_I2cUtilCCS.c</itemPath>
         <itemPath>../src/Mc32gestI2cSeeprom.c</itemPath>
         <itemPath>../src/Mc32gestSPiDac.c</itemPath>
-        <itemPath>../src/MenuGen.c</itemPath>
         <itemPath>../src/Mc32gest_SerComm.c</itemPath>
+        <itemPath>../src/MenuGen.c</itemPath>
+        <itemPath>../src/Mc32NVMUtil.c</itemPath>
+        <itemPath>../src/system_config/pic32mx_eth_sk2/framework/driver/tmr/src/drv_tmr_static.c</itemPath>
       </logicalFolder>
       <logicalFolder name="f3" displayName="bsp" projectFiles="true">
         <logicalFolder name="f1" displayName="pic32mx_skes" projectFiles="true">
@@ -697,7 +697,7 @@
         <platform>3</platform>
       </toolsSet>
       <packs>
-        <pack name="PIC32MX_DFP" vendor="Microchip" version="1.3.231"/>
+        <pack name="PIC32MX_DFP" vendor="Microchip" version="1.0.28"/>
       </packs>
       <ScriptingSettings>
       </ScriptingSettings>
@@ -826,11 +826,11 @@
         <property key="enable-unroll-loops" value="false"/>
         <property key="exclude-floating-point" value="false"/>
         <property key="extra-include-directories"
-                  value="/system_config;/system_config/pic32mx_eth_Sk2;/crypto/src;/crypto;/driver/tmr;/driver;/system/clk;/system/clk/src;/system/common;/system/devcon;/system/int;/system/ports;/system/random;/system/reset;/system/tmr;/system;/tcpip;/tcpip/src;/driver/ethmac;/driver/ethmac/src;/driver/ethmac/src/dynamic;/driver/ethphy;/driver/ethphy/src;/driver/ethphy/src/dynamic;/tcpip/src/common;/tcpip/src/system/drivers;/system_config/pic32mx_eth_sk2;/pic32mx_eth_sk2;/system_config/pic32mx_eth_sk2/framework;/system_config/pic32mx_eth_sk2/bsp;../src;../src/system_config/pic32mx_eth_sk2;../src/pic32mx_eth_sk2;../../../../../framework;../src/system_config/pic32mx_eth_sk2/framework;../../../../../bsp/pic32mx_skes"/>
+                  value="/system_config;/system_config/pic32mx_eth_Sk2;/crypto/src;/crypto;/driver/tmr;/driver;/system/clk;/system/clk/src;/system/common;/system/devcon;/system/int;/system/ports;/system/random;/system/reset;/system/tmr;/system;/tcpip;/tcpip/src;/driver/ethmac;/driver/ethmac/src;/driver/ethmac/src/dynamic;/driver/ethphy;/driver/ethphy/src;/driver/ethphy/src/dynamic;/tcpip/src/common;/tcpip/src/system/drivers;/system_config/pic32mx_eth_sk2;/pic32mx_eth_sk2;/system_config/pic32mx_eth_sk2/framework;/system_config/pic32mx_eth_sk2/bsp;../src;../src/system_config/pic32mx_eth_sk2;../src/pic32mx_eth_sk2;../src/system_config/pic32mx_eth_sk2/framework;../../../../../framework;../../../../../bsp/pic32mx_skes"/>
         <property key="generate-16-bit-code" value="false"/>
         <property key="generate-micro-compressed-code" value="false"/>
         <property key="isolate-each-function" value="true"/>
-        <property key="make-warnings-into-errors" value="true"/>
+        <property key="make-warnings-into-errors" value="false"/>
         <property key="optimization-level" value=""/>
         <property key="place-data-into-section" value="false"/>
         <property key="post-instruction-scheduling" value="default"/>
@@ -951,6 +951,9 @@
         <property key="save-temps" value="false"/>
         <property key="wpo-lto" value="false"/>
       </C32Global>
+      <ICD3PlatformTool>
+        <property key="firmware.download.all" value="false"/>
+      </ICD3PlatformTool>
       <RealICEPlatformTool>
         <property key="ADC 1" value="true"/>
         <property key="AutoSelectMemRanges" value="auto"/>

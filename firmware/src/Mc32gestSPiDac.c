@@ -1,22 +1,13 @@
-/*--------------------------------------------------------*/
-// Mc32GestSpiDac.c
-/*--------------------------------------------------------*/
-//	Description :	Gestion DAC Spi du Kit (LTC2604)
-//
-//	Auteur 		: 	C. Huber
-//	Version		:	V1.2
-//	Compilateur	:	XC32 V1.40 + Harmony 1.06
-//
-//  Modifications :
-//   CHR 10.02.2015 Adaptation plib_spi 
-//   CHR 06.03.2015 ajout fonction SPI_CfgWriteToDac
-//   CHR 24.05.2016 ajout #include "Mc32Delays.h"
-//   CHR 25.05.2016 utilisation de SYS_CLK_PeripheralFrequencyGet(CLK_BUS_PERIPHERAL_1)
-//   SCA 04.04.2022 Config des signaux ctrl (CS et CLR) 
-//                  en sortie au préalable à l'init du DAC
-//                  MPLABX 5.45, xc32 2.50, Harmony 2.06
-/*--------------------------------------------------------*/
+// Mc32gestSpiDac.C
+// Gestion master SPI avec slave DAC
 
+// Pilote du DAC LTC2604
+// Auteur C. Huber  30.04.2012
+// Adaptation plib_spi 10.02.2015 CHR
+//      Modifications :
+//          CHR 06.03.2015  ajout fonction SPI_CfgWriteToDac
+//          CHR 24.05.2016  ajout #include "Mc32Delays.h"
+//          CHR 25.05.2016  utilisation de SYS_CLK_PeripheralFrequencyGet(CLK_BUS_PERIPHERAL_1)
 
 #include "app.h"   // pour system_config et autre
 #include "Mc32gestSpiDac.h"
@@ -44,7 +35,6 @@ uint32_t BaudReg;       // pour lecture de SPI1BRG
 //                    SPI_OPEN_MSTEN ;
 
 
-//Initialisation du SPI pour utilisation avec DAC LTC2604
 void SPI_ConfigureLTC2604(void)
 {
    PLIB_SPI_Disable(KitSpi1);
@@ -73,12 +63,8 @@ void SPI_ConfigureLTC2604(void)
    BaudReg = SPI1BRG;
 }
 
-// Initialisation des signaux de controle du DAC, reset du DAC, puis config. du periph. SPI
-void SPI_InitLTC2604(void)
-{  
-    TRISDbits.TRISD4 = 0;   //SPI-CS_DA en sortie (RD4)
-    TRISDbits.TRISD9 = 0;   //DAC_CLR en sortie (RD9)       
-    
+void SPI_InitLTC2604(void)  {
+
    //Initialisation SPI DAC
    CS_DAC = 1;
    // Impulsion reset du DAC
@@ -90,11 +76,13 @@ void SPI_InitLTC2604(void)
    SPI_ConfigureLTC2604();
 }
 
+
 // Envoi d'une valeur sur le DAC  LTC2604
 // Sans reconfiguration du SPI
 // Indication du canal 0 à 3
 void SPI_WriteToDac(uint8_t NoCh, uint16_t DacVal)
 {
+
    //Déclaration des variables
    uint8_t MSB;
    uint8_t LSB;
@@ -117,12 +105,12 @@ void SPI_WriteToDac(uint8_t NoCh, uint16_t DacVal)
 
 } // SPI_WriteToDac
    
-
 // Envoi d'une valeur sur le DAC  LTC2604
 // Avec reconfiguration du SPI
 // Indication du canal 0 à 3
 void SPI_CfgWriteToDac(uint8_t NoCh, uint16_t DacVal)
 {
+
    //Déclaration des variables
    uint8_t MSB;
    uint8_t LSB;

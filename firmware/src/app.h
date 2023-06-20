@@ -66,6 +66,7 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 // Section: Type Definitions
 // *****************************************************************************
 // *****************************************************************************
+uint8_t BufferTCPIP[32];
 
 // *****************************************************************************
 /* Application States
@@ -111,17 +112,26 @@ typedef enum
   Remarks:
     Application strings and buffers are be defined outside this structure.
  */
-
 typedef struct
 {
     /* The application's current state */
     APP_STATES state;
 
     TCP_SOCKET              socket;
+    
+    TCP_OPTION_KEEP_ALIVE_DATA  keepAlive;
+    
+    /* Number of bytes read from Host */
+    uint32_t numBytesRead; 
+    
+    /* Application CDC read buffer */
+    uint8_t * readBuffer;
 
 } APP_DATA;
 
+extern APP_DATA appData;
 
+extern bool TCPCon;
 // *****************************************************************************
 // *****************************************************************************
 // Section: Application Callback Routines
